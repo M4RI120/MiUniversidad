@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login MyUniversidad</title>
+</head>
+<body>
+  <h1>MyUniversidad</h1>
+
+  <form id="loginForm">
+    <input type="email" id="correo" placeholder="Correo" required>
+    <input type="password" id="password" placeholder="Contraseña" required>
+    <button type="submit">Ingresar</button>
+  </form>
+
+  <p id="mensaje"></p>
+
+  <script>
+    const form = document.getElementById("loginForm");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const correo = document.getElementById("correo").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ correo, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById("mensaje").textContent = data.mensaje;
+        return;
+      }
+
+      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+
+      if (data.usuario.rol === "admin") {
+        window.location.href = "/admin.html";
+      } else if (data.usuario.rol === "profesor") {
+        window.location.href = "/profesor.html";
+      } else if (data.usuario.rol === "estudiante") {
+        window.location.href = "/estudiante.html";
+      }
+    });
+  </script>
+</body>
+</html>
