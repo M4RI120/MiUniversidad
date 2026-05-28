@@ -13,6 +13,7 @@ const entregasRoutes = require("./routes/entregasRoutes");
 const calificacionesRoutes = require("./routes/calificacionesRoutes");
 const retroalimentacionRoutes = require("./routes/retroalimentacionRoutes");
 const analiticaUsoRoutes = require("./routes/analiticaUsoRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 app.use(cors());
 app.use(express.json());
@@ -25,6 +26,7 @@ app.use(entregasRoutes);
 app.use(calificacionesRoutes);
 app.use(retroalimentacionRoutes);
 app.use(analiticaUsoRoutes);
+app.use(dashboardRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Mongo conectado"))

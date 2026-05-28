@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panel Admin</title>
+  <title>Panel Coordinador</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -39,8 +39,7 @@
       width: 100%;
       background: white;
       border-collapse: collapse;
-      border-radius: 10px;
-      overflow: hidden;
+      margin-bottom: 30px;
     }
 
     th, td {
@@ -66,13 +65,18 @@
 </head>
 <body>
 
-  <h1>Panel Administrador</h1>
+  <h1>Panel Coordinador</h1>
   <p id="bienvenida"></p>
 
   <div class="cards">
     <div class="card">
-      <h2 id="totalUsuarios">0</h2>
-      <p>Usuarios</p>
+      <h2 id="totalEstudiantes">0</h2>
+      <p>Estudiantes</p>
+    </div>
+
+    <div class="card">
+      <h2 id="totalProfesores">0</h2>
+      <p>Profesores</p>
     </div>
 
     <div class="card">
@@ -81,36 +85,30 @@
     </div>
 
     <div class="card">
-      <h2 id="totalTareas">0</h2>
-      <p>Tareas</p>
+      <h2 id="totalCalificaciones">0</h2>
+      <p>Calificaciones</p>
+    </div>
+  </div>
+
+  <h2>Estadísticas académicas</h2>
+
+  <div class="cards">
+    <div class="card">
+      <h2 id="mejorCurso">-</h2>
+      <p>Curso con mejor promedio</p>
     </div>
 
     <div class="card">
-      <h2 id="totalEntregas">0</h2>
-      <p>Entregas</p>
+      <h2 id="cursoMasEntregas">-</h2>
+      <p>Curso con más entregas</p>
+    </div>
+
+    <div class="card">
+      <h2 id="rolMasActivo">-</h2>
+      <p>Rol más activo</p>
     </div>
   </div>
-<h2>Estadísticas generales</h2>
 
-<div class="cards">
-
-  <div class="card">
-    <h2 id="mejorCurso">-</h2>
-    <p>Curso con mejor promedio</p>
-  </div>
-
-  <div class="card">
-    <h2 id="cursoMasEntregas">-</h2>
-    <p>Curso con más entregas</p>
-  </div>
-
-  <div class="card">
-    <h2 id="rolMasActivo">-</h2>
-    <p>Rol más activo</p>
-  </div>
-
-</div>
-  
   <h2>Cursos registrados</h2>
 
   <table>
@@ -126,57 +124,82 @@
     <tbody id="tablaCursos"></tbody>
   </table>
 
-  <br>
+  <h2>Calificaciones registradas</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Estudiante</th>
+        <th>Curso</th>
+        <th>Tarea</th>
+        <th>Calificación</th>
+      </tr>
+    </thead>
+    <tbody id="tablaCalificaciones"></tbody>
+  </table>
+
   <button onclick="cerrarSesion()">Cerrar sesión</button>
 
   <script>
     const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-    if (!usuario || usuario.rol !== "admin") {
+    if (!usuario || usuario.rol !== "coordinador") {
       window.location.href = "/login.html";
     }
 
     document.getElementById("bienvenida").textContent =
-      "Bienvenida, " + usuario.nombre;
+      "Bienvenido/a, " + usuario.nombre;
 
     async function cargarDatos() {
       const usuarios = await fetch("/usuarios").then(res => res.json());
       const cursos = await fetch("/cursos").then(res => res.json());
-      const tareas = await fetch("/tareas").then(res => res.json());
-      const entregas = await fetch("/entregas").then(res => res.json());
+      const calificaciones = await fetch("/calificaciones").then(res => res.json());
+
       const promedioCursos = await fetch("/dashboard/promedio-cursos").then(res => res.json());
       const entregasCursos = await fetch("/dashboard/entregas-cursos").then(res => res.json());
       const actividadRoles = await fetch("/dashboard/actividad-roles").then(res => res.json());
 
-      document.getElementById("totalUsuarios").textContent = usuarios.length;
+      const estudiantes = usuarios.filter(u => u.rol === "estudiante");
+      const profesores = usuarios.filter(u => u.rol === "profesor");
+
+      document.getElementById("totalEstudiantes").textContent = estudiantes.length;
+      document.getElementById("totalProfesores").textContent = profesores.length;
       document.getElementById("totalCursos").textContent = cursos.length;
-      document.getElementById("totalTareas").textContent = tareas.length;
-      document.getElementById("totalEntregas").textContent = entregas.length;
+      document.getElementById("totalCalificaciones").textContent = calificaciones.length;
+
       if (promedioCursos.length > 0) {
-      document.getElementById("mejorCurso").textContent =
-    promedioCursos[0]._id;
-}
+        document.getElementById("mejorCurso").textContent = promedioCursos[0]._id;
+      }
 
-if (entregasCursos.length > 0) {
-  document.getElementById("cursoMasEntregas").textContent =
-    entregasCursos[0]._id;
-}
+      if (entregasCursos.length > 0) {
+        document.getElementById("cursoMasEntregas").textContent = entregasCursos[0]._id;
+      }
 
-if (actividadRoles.length > 0) {
-  document.getElementById("rolMasActivo").textContent =
-    actividadRoles[0]._id;
-}
+      if (actividadRoles.length > 0) {
+        document.getElementById("rolMasActivo").textContent = actividadRoles[0]._id;
+      }
 
-      const tabla = document.getElementById("tablaCursos");
-
+      const tablaCursos = document.getElementById("tablaCursos");
       cursos.forEach(curso => {
-        tabla.innerHTML += `
+        tablaCursos.innerHTML += `
           <tr>
             <td>${curso.nombreCurso}</td>
             <td>${curso.clave}</td>
             <td>${curso.carrera}</td>
             <td>${curso.profesor}</td>
             <td>${curso.semestre}</td>
+          </tr>
+        `;
+      });
+
+      const tablaCalificaciones = document.getElementById("tablaCalificaciones");
+      calificaciones.forEach(c => {
+        tablaCalificaciones.innerHTML += `
+          <tr>
+            <td>${c.estudiante}</td>
+            <td>${c.curso}</td>
+            <td>${c.tarea}</td>
+            <td>${c.calificacion}</td>
           </tr>
         `;
       });

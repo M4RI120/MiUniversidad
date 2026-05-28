@@ -1,3 +1,169 @@
-<h1>Panel Profesor</h1>
-<p>Bienvenido profesor</p>
-<a href="/login.html">Cerrar sesión</a>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Profesor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #234;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px #ccc;
+      text-align: center;
+    }
+
+    .card h2 {
+      margin: 0;
+      color: #2f5d62;
+    }
+
+    table {
+      width: 100%;
+      background: white;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background: #2f5d62;
+      color: white;
+    }
+
+    button {
+      background: #2f5d62;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Panel Profesor</h1>
+  <p id="bienvenida"></p>
+
+  <div class="cards">
+    <div class="card">
+      <h2 id="totalTareas">0</h2>
+      <p>Tareas</p>
+    </div>
+
+    <div class="card">
+      <h2 id="totalEntregas">0</h2>
+      <p>Entregas</p>
+    </div>
+
+    <div class="card">
+      <h2 id="totalCalificaciones">0</h2>
+      <p>Calificaciones</p>
+    </div>
+  </div>
+
+  <h2>Tareas registradas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarea</th>
+        <th>Curso</th>
+        <th>Fecha entrega</th>
+        <th>Puntos</th>
+      </tr>
+    </thead>
+    <tbody id="tablaTareas"></tbody>
+  </table>
+
+  <h2>Entregas recibidas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Estudiante</th>
+        <th>Tarea</th>
+        <th>Curso</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tablaEntregas"></tbody>
+  </table>
+
+  <button onclick="cerrarSesion()">Cerrar sesión</button>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+
+    if (!usuario || usuario.rol !== "profesor") {
+      window.location.href = "/login.html";
+    }
+
+    document.getElementById("bienvenida").textContent =
+      "Bienvenido, " + usuario.nombre;
+
+    async function cargarDatos() {
+      const tareas = await fetch("/tareas").then(res => res.json());
+      const entregas = await fetch("/entregas").then(res => res.json());
+      const calificaciones = await fetch("/calificaciones").then(res => res.json());
+
+      document.getElementById("totalTareas").textContent = tareas.length;
+      document.getElementById("totalEntregas").textContent = entregas.length;
+      document.getElementById("totalCalificaciones").textContent = calificaciones.length;
+
+      const tablaTareas = document.getElementById("tablaTareas");
+      tareas.forEach(tarea => {
+        tablaTareas.innerHTML += `
+          <tr>
+            <td>${tarea.titulo}</td>
+            <td>${tarea.curso}</td>
+            <td>${tarea.fechaEntrega}</td>
+            <td>${tarea.puntos}</td>
+          </tr>
+        `;
+      });
+
+      const tablaEntregas = document.getElementById("tablaEntregas");
+      entregas.forEach(entrega => {
+        tablaEntregas.innerHTML += `
+          <tr>
+            <td>${entrega.estudiante}</td>
+            <td>${entrega.tarea}</td>
+            <td>${entrega.curso}</td>
+            <td>${entrega.estado}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem("usuario");
+      window.location.href = "/login.html";
+    }
+
+    cargarDatos();
+  </script>
+
+</body>
+</html>

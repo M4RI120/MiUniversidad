@@ -1,3 +1,203 @@
-<h1>Panel Estudiante</h1>
-<p>Bienvenido estudiante</p>
-<a href="/login.html">Cerrar sesión</a>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Estudiante</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #234;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px #ccc;
+      text-align: center;
+    }
+
+    .card h2 {
+      margin: 0;
+      color: #2f5d62;
+    }
+
+    table {
+      width: 100%;
+      background: white;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background: #2f5d62;
+      color: white;
+    }
+
+    button {
+      background: #2f5d62;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Panel Estudiante</h1>
+  <p id="bienvenida"></p>
+
+  <div class="cards">
+    <div class="card">
+      <h2 id="totalCursos">0</h2>
+      <p>Cursos disponibles</p>
+    </div>
+
+    <div class="card">
+      <h2 id="totalTareas">0</h2>
+      <p>Tareas</p>
+    </div>
+
+    <div class="card">
+      <h2 id="promedio">0</h2>
+      <p>Promedio</p>
+    </div>
+  </div>
+
+  <h2>Cursos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Curso</th>
+        <th>Clave</th>
+        <th>Carrera</th>
+        <th>Profesor</th>
+      </tr>
+    </thead>
+    <tbody id="tablaCursos"></tbody>
+  </table>
+
+  <h2>Tareas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarea</th>
+        <th>Curso</th>
+        <th>Fecha entrega</th>
+        <th>Puntos</th>
+      </tr>
+    </thead>
+    <tbody id="tablaTareas"></tbody>
+  </table>
+
+  <h2>Mis calificaciones</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Curso</th>
+        <th>Tarea</th>
+        <th>Calificación</th>
+        <th>Observación</th>
+      </tr>
+    </thead>
+    <tbody id="tablaCalificaciones"></tbody>
+  </table>
+
+  <button onclick="cerrarSesion()">Cerrar sesión</button>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+
+    if (!usuario || usuario.rol !== "estudiante") {
+      window.location.href = "/login.html";
+    }
+
+    document.getElementById("bienvenida").textContent =
+      "Bienvenido/a, " + usuario.nombre;
+
+    async function cargarDatos() {
+      const cursos = await fetch("/cursos").then(res => res.json());
+      const tareas = await fetch("/tareas").then(res => res.json());
+      const calificaciones = await fetch("/calificaciones").then(res => res.json());
+
+      const misCalificaciones = calificaciones.filter(c =>
+        c.estudiante === usuario.nombre
+      );
+
+      document.getElementById("totalCursos").textContent = cursos.length;
+      document.getElementById("totalTareas").textContent = tareas.length;
+
+      if (misCalificaciones.length > 0) {
+        const suma = misCalificaciones.reduce((total, c) => total + c.calificacion, 0);
+        const promedio = suma / misCalificaciones.length;
+        document.getElementById("promedio").textContent = promedio.toFixed(1);
+      }
+
+      const tablaCursos = document.getElementById("tablaCursos");
+      cursos.forEach(curso => {
+        tablaCursos.innerHTML += `
+          <tr>
+            <td>${curso.nombreCurso}</td>
+            <td>${curso.clave}</td>
+            <td>${curso.carrera}</td>
+            <td>${curso.profesor}</td>
+          </tr>
+        `;
+      });
+
+      const tablaTareas = document.getElementById("tablaTareas");
+      tareas.forEach(tarea => {
+        tablaTareas.innerHTML += `
+          <tr>
+            <td>${tarea.titulo}</td>
+            <td>${tarea.curso}</td>
+            <td>${tarea.fechaEntrega}</td>
+            <td>${tarea.puntos}</td>
+          </tr>
+        `;
+      });
+
+      const tablaCalificaciones = document.getElementById("tablaCalificaciones");
+      misCalificaciones.forEach(c => {
+        tablaCalificaciones.innerHTML += `
+          <tr>
+            <td>${c.curso}</td>
+            <td>${c.tarea}</td>
+            <td>${c.calificacion}</td>
+            <td>${c.observacion || "Sin observación"}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem("usuario");
+      window.location.href = "/login.html";
+    }
+
+    cargarDatos();
+  </script>
+
+</body>
+</html>
