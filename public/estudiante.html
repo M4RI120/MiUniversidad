@@ -4,200 +4,158 @@
   <meta charset="UTF-8">
   <title>Panel Estudiante</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #234;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px #ccc;
-      text-align: center;
-    }
-
-    .card h2 {
-      margin: 0;
-      color: #2f5d62;
-    }
-
-    table {
-      width: 100%;
-      background: white;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
-
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-
-    th {
-      background: #2f5d62;
-      color: white;
-    }
-
-    button {
-      background: #2f5d62;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+    body { font-family: Arial; background:#f4f6f8; margin:0; padding:20px; }
+    h1, h2 { color:#234; }
+    .card, form, table { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px #ccc; margin-bottom:25px; }
+    input, textarea, select { width:100%; padding:10px; margin:8px 0; border:1px solid #ccc; border-radius:8px; }
+    button { background:#2f5d62; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:12px; border-bottom:1px solid #ddd; text-align:left; }
+    th { background:#2f5d62; color:white; }
   </style>
 </head>
 <body>
 
-  <h1>Panel Estudiante</h1>
-  <p id="bienvenida"></p>
+<h1>Panel Estudiante</h1>
+<p id="bienvenida"></p>
 
-  <div class="cards">
-    <div class="card">
-      <h2 id="totalCursos">0</h2>
-      <p>Cursos disponibles</p>
-    </div>
+<h2>Tareas disponibles</h2>
 
-    <div class="card">
-      <h2 id="totalTareas">0</h2>
-      <p>Tareas</p>
-    </div>
+<table>
+  <thead>
+    <tr>
+      <th>Tarea</th>
+      <th>Curso</th>
+      <th>Indicaciones</th>
+      <th>Fecha entrega</th>
+      <th>Puntos</th>
+    </tr>
+  </thead>
+  <tbody id="tablaTareas"></tbody>
+</table>
 
-    <div class="card">
-      <h2 id="promedio">0</h2>
-      <p>Promedio</p>
-    </div>
-  </div>
+<h2>Subir entrega</h2>
 
-  <h2>Cursos</h2>
-  <table>
-    <thead>
+<form id="formEntrega">
+  <select id="tarea" required>
+    <option value="">Selecciona una tarea</option>
+  </select>
+
+  <input type="text" id="curso" placeholder="Curso" required>
+  <input type="text" id="archivo" placeholder="Nombre del archivo, ejemplo: tarea1.pdf" required>
+  <textarea id="comentario" placeholder="Comentario de entrega"></textarea>
+
+  <button type="submit">Enviar entrega</button>
+</form>
+
+<h2>Mis calificaciones</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Curso</th>
+      <th>Tarea</th>
+      <th>Calificación</th>
+      <th>Observación</th>
+    </tr>
+  </thead>
+  <tbody id="tablaCalificaciones"></tbody>
+</table>
+
+<button onclick="cerrarSesion()">Cerrar sesión</button>
+
+<script>
+const usuario = JSON.parse(localStorage.getItem("usuario"));
+
+if (!usuario || usuario.rol !== "estudiante") {
+  window.location.href = "/login.html";
+}
+
+document.getElementById("bienvenida").textContent = "Bienvenido/a, " + usuario.nombre;
+
+async function cargarDatos() {
+  const tareas = await fetch("/tareas").then(res => res.json());
+  const calificaciones = await fetch("/calificaciones").then(res => res.json());
+
+  const tablaTareas = document.getElementById("tablaTareas");
+  const selectTarea = document.getElementById("tarea");
+
+  tablaTareas.innerHTML = "";
+  selectTarea.innerHTML = `<option value="">Selecciona una tarea</option>`;
+
+  tareas.forEach(tarea => {
+    tablaTareas.innerHTML += `
       <tr>
-        <th>Curso</th>
-        <th>Clave</th>
-        <th>Carrera</th>
-        <th>Profesor</th>
+        <td>${tarea.titulo}</td>
+        <td>${tarea.curso}</td>
+        <td>${tarea.descripcion || "Sin indicaciones"}</td>
+        <td>${tarea.fechaEntrega}</td>
+        <td>${tarea.puntos}</td>
       </tr>
-    </thead>
-    <tbody id="tablaCursos"></tbody>
-  </table>
+    `;
 
-  <h2>Tareas</h2>
-  <table>
-    <thead>
+    selectTarea.innerHTML += `
+      <option value="${tarea.titulo}" data-curso="${tarea.curso}">
+        ${tarea.titulo} - ${tarea.curso}
+      </option>
+    `;
+  });
+
+  const misCalificaciones = calificaciones.filter(c => c.estudiante === usuario.nombre);
+  const tablaCalificaciones = document.getElementById("tablaCalificaciones");
+  tablaCalificaciones.innerHTML = "";
+
+  misCalificaciones.forEach(c => {
+    tablaCalificaciones.innerHTML += `
       <tr>
-        <th>Tarea</th>
-        <th>Curso</th>
-        <th>Fecha entrega</th>
-        <th>Puntos</th>
+        <td>${c.curso}</td>
+        <td>${c.tarea}</td>
+        <td>${c.calificacion}</td>
+        <td>${c.observacion || "Sin observación"}</td>
       </tr>
-    </thead>
-    <tbody id="tablaTareas"></tbody>
-  </table>
+    `;
+  });
+}
 
-  <h2>Mis calificaciones</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Curso</th>
-        <th>Tarea</th>
-        <th>Calificación</th>
-        <th>Observación</th>
-      </tr>
-    </thead>
-    <tbody id="tablaCalificaciones"></tbody>
-  </table>
+document.getElementById("tarea").addEventListener("change", function() {
+  const curso = this.options[this.selectedIndex].dataset.curso || "";
+  document.getElementById("curso").value = curso;
+});
 
-  <button onclick="cerrarSesion()">Cerrar sesión</button>
+document.getElementById("formEntrega").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-  <script>
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
+  const entrega = {
+    estudiante: usuario.nombre,
+    tarea: document.getElementById("tarea").value,
+    curso: document.getElementById("curso").value,
+    archivo: document.getElementById("archivo").value,
+    comentario: document.getElementById("comentario").value,
+    fechaEntrega: new Date().toISOString().split("T")[0],
+    estado: "entregado"
+  };
 
-    if (!usuario || usuario.rol !== "estudiante") {
-      window.location.href = "/login.html";
-    }
+  const res = await fetch("/entregas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entrega)
+  });
 
-    document.getElementById("bienvenida").textContent =
-      "Bienvenido/a, " + usuario.nombre;
+  if (res.ok) {
+    alert("Entrega enviada correctamente");
+    document.getElementById("formEntrega").reset();
+  } else {
+    alert("Error al enviar entrega");
+  }
+});
 
-    async function cargarDatos() {
-      const cursos = await fetch("/cursos").then(res => res.json());
-      const tareas = await fetch("/tareas").then(res => res.json());
-      const calificaciones = await fetch("/calificaciones").then(res => res.json());
+function cerrarSesion() {
+  localStorage.removeItem("usuario");
+  window.location.href = "/login.html";
+}
 
-      const misCalificaciones = calificaciones.filter(c =>
-        c.estudiante === usuario.nombre
-      );
-
-      document.getElementById("totalCursos").textContent = cursos.length;
-      document.getElementById("totalTareas").textContent = tareas.length;
-
-      if (misCalificaciones.length > 0) {
-        const suma = misCalificaciones.reduce((total, c) => total + c.calificacion, 0);
-        const promedio = suma / misCalificaciones.length;
-        document.getElementById("promedio").textContent = promedio.toFixed(1);
-      }
-
-      const tablaCursos = document.getElementById("tablaCursos");
-      cursos.forEach(curso => {
-        tablaCursos.innerHTML += `
-          <tr>
-            <td>${curso.nombreCurso}</td>
-            <td>${curso.clave}</td>
-            <td>${curso.carrera}</td>
-            <td>${curso.profesor}</td>
-          </tr>
-        `;
-      });
-
-      const tablaTareas = document.getElementById("tablaTareas");
-      tareas.forEach(tarea => {
-        tablaTareas.innerHTML += `
-          <tr>
-            <td>${tarea.titulo}</td>
-            <td>${tarea.curso}</td>
-            <td>${tarea.fechaEntrega}</td>
-            <td>${tarea.puntos}</td>
-          </tr>
-        `;
-      });
-
-      const tablaCalificaciones = document.getElementById("tablaCalificaciones");
-      misCalificaciones.forEach(c => {
-        tablaCalificaciones.innerHTML += `
-          <tr>
-            <td>${c.curso}</td>
-            <td>${c.tarea}</td>
-            <td>${c.calificacion}</td>
-            <td>${c.observacion || "Sin observación"}</td>
-          </tr>
-        `;
-      });
-    }
-
-    function cerrarSesion() {
-      localStorage.removeItem("usuario");
-      window.location.href = "/login.html";
-    }
-
-    cargarDatos();
-  </script>
+cargarDatos();
+</script>
 
 </body>
 </html>

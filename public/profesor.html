@@ -4,108 +4,89 @@
   <meta charset="UTF-8">
   <title>Panel Profesor</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #234;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px #ccc;
-      text-align: center;
-    }
-
-    .card h2 {
-      margin: 0;
-      color: #2f5d62;
-    }
-
-    table {
-      width: 100%;
-      background: white;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
-
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-
-    th {
-      background: #2f5d62;
-      color: white;
-    }
-
-    button {
-      background: #2f5d62;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+    body { margin:0; font-family:Arial; background:#eef3f6; }
+    header { background:#2f5d62; color:white; padding:20px; }
+    main { padding:25px; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; }
+    .card, form, table { background:white; padding:20px; border-radius:14px; box-shadow:0 2px 8px #ccc; margin-bottom:25px; }
+    input, textarea { width:100%; padding:10px; margin:8px 0; border:1px solid #ccc; border-radius:8px; box-sizing:border-box; }
+    button { background:#2f5d62; color:white; border:none; padding:9px 13px; border-radius:8px; cursor:pointer; margin:3px; }
+    .danger { background:#b23b3b; }
+    .ok { background:#3b8f5c; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:12px; border-bottom:1px solid #ddd; text-align:left; }
+    th { background:#2f5d62; color:white; }
+    .badge { padding:5px 8px; border-radius:8px; color:white; font-size:13px; }
+    .pendiente { background:#c27c0e; }
+    .calificada { background:#3b8f5c; }
   </style>
 </head>
 <body>
 
+<header>
   <h1>Panel Profesor</h1>
   <p id="bienvenida"></p>
+</header>
 
-  <div class="cards">
+<main>
+
+  <div class="grid">
     <div class="card">
       <h2 id="totalTareas">0</h2>
-      <p>Tareas</p>
+      <p>Mis tareas</p>
     </div>
-
     <div class="card">
       <h2 id="totalEntregas">0</h2>
-      <p>Entregas</p>
+      <p>Entregas recibidas</p>
     </div>
-
     <div class="card">
-      <h2 id="totalCalificaciones">0</h2>
-      <p>Calificaciones</p>
+      <h2 id="totalPendientes">0</h2>
+      <p>Pendientes por calificar</p>
     </div>
   </div>
 
-  <h2>Tareas registradas</h2>
+  <h2>Crear / editar tarea</h2>
+
+  <form id="formTarea">
+    <input type="hidden" id="tareaId">
+
+    <input type="text" id="titulo" placeholder="Título de la tarea" required>
+    <textarea id="descripcion" placeholder="Indicaciones de la tarea" required></textarea>
+    <input type="text" id="curso" placeholder="Curso que impartes" required>
+    <input type="date" id="fechaEntrega" required>
+    <input type="number" id="puntos" placeholder="Puntos" required>
+
+    <button type="submit">Guardar tarea</button>
+  </form>
+
+  <h2>Mis tareas publicadas</h2>
+
   <table>
     <thead>
       <tr>
         <th>Tarea</th>
         <th>Curso</th>
-        <th>Fecha entrega</th>
+        <th>Indicaciones</th>
+        <th>Fecha</th>
         <th>Puntos</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody id="tablaTareas"></tbody>
   </table>
 
-  <h2>Entregas recibidas</h2>
+  <h2>Entregas de alumnos</h2>
+
   <table>
     <thead>
       <tr>
         <th>Estudiante</th>
         <th>Tarea</th>
         <th>Curso</th>
+        <th>Archivo</th>
+        <th>Comentario</th>
         <th>Estado</th>
+        <th>Acción</th>
       </tr>
     </thead>
     <tbody id="tablaEntregas"></tbody>
@@ -113,57 +94,193 @@
 
   <button onclick="cerrarSesion()">Cerrar sesión</button>
 
-  <script>
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
+</main>
 
-    if (!usuario || usuario.rol !== "profesor") {
-      window.location.href = "/login.html";
-    }
+<script>
+const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-    document.getElementById("bienvenida").textContent =
-      "Bienvenido, " + usuario.nombre;
+if (!usuario || usuario.rol !== "profesor") {
+  window.location.href = "/login.html";
+}
 
-    async function cargarDatos() {
-      const tareas = await fetch("/tareas").then(res => res.json());
-      const entregas = await fetch("/entregas").then(res => res.json());
-      const calificaciones = await fetch("/calificaciones").then(res => res.json());
+document.getElementById("bienvenida").textContent =
+  "Bienvenido, " + usuario.nombre;
 
-      document.getElementById("totalTareas").textContent = tareas.length;
-      document.getElementById("totalEntregas").textContent = entregas.length;
-      document.getElementById("totalCalificaciones").textContent = calificaciones.length;
+const form = document.getElementById("formTarea");
 
-      const tablaTareas = document.getElementById("tablaTareas");
-      tareas.forEach(tarea => {
-        tablaTareas.innerHTML += `
-          <tr>
-            <td>${tarea.titulo}</td>
-            <td>${tarea.curso}</td>
-            <td>${tarea.fechaEntrega}</td>
-            <td>${tarea.puntos}</td>
-          </tr>
-        `;
-      });
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-      const tablaEntregas = document.getElementById("tablaEntregas");
-      entregas.forEach(entrega => {
-        tablaEntregas.innerHTML += `
-          <tr>
-            <td>${entrega.estudiante}</td>
-            <td>${entrega.tarea}</td>
-            <td>${entrega.curso}</td>
-            <td>${entrega.estado}</td>
-          </tr>
-        `;
-      });
-    }
+  const id = document.getElementById("tareaId").value;
 
-    function cerrarSesion() {
-      localStorage.removeItem("usuario");
-      window.location.href = "/login.html";
-    }
+  const tarea = {
+    titulo: document.getElementById("titulo").value,
+    descripcion: document.getElementById("descripcion").value,
+    curso: document.getElementById("curso").value,
+    profesor: usuario.nombre,
+    fechaEntrega: document.getElementById("fechaEntrega").value,
+    puntos: Number(document.getElementById("puntos").value)
+  };
 
-    cargarDatos();
-  </script>
+  let url = "/tareas";
+  let metodo = "POST";
+
+  if (id) {
+    url = "/tareas/" + id;
+    metodo = "PUT";
+  }
+
+  const res = await fetch(url, {
+    method: metodo,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(tarea)
+  });
+
+  if (res.ok) {
+    alert("Tarea guardada correctamente");
+    form.reset();
+    document.getElementById("tareaId").value = "";
+    cargarTodo();
+  }
+});
+
+async function cargarTodo() {
+  const tareas = await fetch("/tareas").then(res => res.json());
+  const entregas = await fetch("/entregas").then(res => res.json());
+  const calificaciones = await fetch("/calificaciones").then(res => res.json());
+
+  const misTareas = tareas.filter(t => t.profesor === usuario.nombre);
+
+  const nombresMisTareas = misTareas.map(t => t.titulo);
+
+  const entregasMisTareas = entregas.filter(e =>
+    nombresMisTareas.includes(e.tarea)
+  );
+
+  const pendientes = entregasMisTareas.filter(e => {
+    return !calificaciones.some(c =>
+      c.estudiante === e.estudiante &&
+      c.tarea === e.tarea &&
+      c.curso === e.curso
+    );
+  });
+
+  document.getElementById("totalTareas").textContent = misTareas.length;
+  document.getElementById("totalEntregas").textContent = entregasMisTareas.length;
+  document.getElementById("totalPendientes").textContent = pendientes.length;
+
+  cargarTablaTareas(misTareas);
+  cargarTablaEntregas(entregasMisTareas, calificaciones);
+}
+
+function cargarTablaTareas(tareas) {
+  const tabla = document.getElementById("tablaTareas");
+  tabla.innerHTML = "";
+
+  tareas.forEach(tarea => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${tarea.titulo}</td>
+        <td>${tarea.curso}</td>
+        <td>${tarea.descripcion || "Sin indicaciones"}</td>
+        <td>${tarea.fechaEntrega}</td>
+        <td>${tarea.puntos}</td>
+        <td>
+          <button onclick='editarTarea(${JSON.stringify(tarea)})'>Editar</button>
+          <button class="danger" onclick="eliminarTarea('${tarea._id}')">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function cargarTablaEntregas(entregas, calificaciones) {
+  const tabla = document.getElementById("tablaEntregas");
+  tabla.innerHTML = "";
+
+  entregas.forEach(entrega => {
+    const yaCalificada = calificaciones.some(c =>
+      c.estudiante === entrega.estudiante &&
+      c.tarea === entrega.tarea &&
+      c.curso === entrega.curso
+    );
+
+    tabla.innerHTML += `
+      <tr>
+        <td>${entrega.estudiante}</td>
+        <td>${entrega.tarea}</td>
+        <td>${entrega.curso}</td>
+        <td>${entrega.archivo}</td>
+        <td>${entrega.comentario || "Sin comentario"}</td>
+        <td>
+          <span class="badge ${yaCalificada ? "calificada" : "pendiente"}">
+            ${yaCalificada ? "Calificada" : "Pendiente"}
+          </span>
+        </td>
+        <td>
+          <button class="ok" onclick='calificarEntrega(${JSON.stringify(entrega)})'>
+            Calificar
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function editarTarea(tarea) {
+  document.getElementById("tareaId").value = tarea._id;
+  document.getElementById("titulo").value = tarea.titulo;
+  document.getElementById("descripcion").value = tarea.descripcion || "";
+  document.getElementById("curso").value = tarea.curso;
+  document.getElementById("fechaEntrega").value = tarea.fechaEntrega;
+  document.getElementById("puntos").value = tarea.puntos;
+}
+
+async function eliminarTarea(id) {
+  if (!confirm("¿Eliminar esta tarea?")) return;
+
+  await fetch("/tareas/" + id, {
+    method: "DELETE"
+  });
+
+  cargarTodo();
+}
+
+async function calificarEntrega(entrega) {
+  const calificacion = prompt("Escribe la calificación:");
+
+  if (!calificacion) return;
+
+  const observacion = prompt("Escribe una observación:");
+
+  const nuevaCalificacion = {
+    estudiante: entrega.estudiante,
+    curso: entrega.curso,
+    tarea: entrega.tarea,
+    calificacion: Number(calificacion),
+    observacion: observacion || "Sin observación",
+    fecha: new Date().toISOString().split("T")[0]
+  };
+
+  const res = await fetch("/calificaciones", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nuevaCalificacion)
+  });
+
+  if (res.ok) {
+    alert("Calificación guardada");
+    cargarTodo();
+  }
+}
+
+function cerrarSesion() {
+  localStorage.removeItem("usuario");
+  window.location.href = "/login.html";
+}
+
+cargarTodo();
+</script>
 
 </body>
 </html>
